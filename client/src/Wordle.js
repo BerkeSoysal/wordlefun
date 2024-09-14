@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import './Wordle.css';
 
-const socket = io('http://localhost:5001');
+const socket = io();
 
 const Wordle = () => {
   const [gameState, setGameState] = useState('menu'); // 'menu', 'waiting', 'playing'
