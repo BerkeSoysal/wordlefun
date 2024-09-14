@@ -61,14 +61,7 @@ io.on('connection', (socket) => {
     if (!game || game.turn !== socket.id || !game.solution) return;
 
     const otherPlayer = game.players.find(id => id !== socket.id);
-    io.to(game.players).emit('opponentGuess', guess);
-
-    if (guess.toLowerCase() === game.solution) {
-      io.to(game.players).emit('gameOver', { winner: socket.id, word: game.solution });
-    } else {
-      game.turn = otherPlayer;
-      io.to(game.players).emit('turnChange', game.turn);
-    }
+    io.to(otherPlayer).emit('opponentGuess', guess);
   });
 
   socket.on('disconnect', () => {
