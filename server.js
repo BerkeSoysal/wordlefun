@@ -31,6 +31,7 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   socket.on('createRoom', ({ isPrivate }) => {
+    console.log("room creation");
     const roomCode = generateRoomCode();
     rooms.set(roomCode, { players: [socket.id], isPrivate, wordSelector: socket.id });
     socket.join(roomCode);
