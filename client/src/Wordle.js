@@ -65,6 +65,8 @@ const Wordle = () => {
   const [message, setMessage] = useState('');
   const [playerId, setPlayerId] = useState(null);
   const [currentTurn, setCurrentTurn] = useState(null);
+  const [isWordSelector, setIsWordSelector] = useState(false);
+  const [selectedWord, setSelectedWord] = useState('');
 
   const keyboardLayout = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -75,12 +77,20 @@ const Wordle = () => {
   useEffect(() => {
     socket.on('connect', () => {
       setPlayerId(socket.id);
-      console.log("set")
+      console.log("connected")
     });
 
-    socket.on('gameStart', ({ solution, turn }) => {
-      setSolution(solution);
+    socket.on('gameStart', ({ isSelector, solution, turn }) => {
+      setIsWordSelector(isSelector);
+      if (!isSelector) {
+        setSolution(solution);
+      }
       setCurrentTurn(turn);
+    });
+
+    socket.on('wordSelected', (word) => {
+      setSolution(word);
+      setCurrentTurn(playerId);
     });
 
     socket.on('gameOver', () => {
@@ -105,8 +115,18 @@ const Wordle = () => {
       socket.off('gameStart');
       socket.off('turnChange');
       socket.off('opponentGuess');
+      socket.off('wordSelected');
     };
   }, []);
+
+  const handleWordSelection = useCallback(() => {
+    if (selectedWord.length === 5 && cachedWordList.includes(selectedWord.toLowerCase())) {
+      socket.emit('selectWord', selectedWord);
+      setMessage("Word selected. Waiting for opponent to guess.");
+    } else {
+      setMessage("Please select a valid 5-letter word.");
+    }
+  }, [selectedWord, cachedWordList]);
 
   useEffect(() => {
     // In a real app, you'd fetch this from an API
@@ -117,10 +137,17 @@ const Wordle = () => {
   }, []);
 
   const handleKeyup = useCallback((e) => {
-    if (gameOver || currentTurn !== playerId) return;
+    if (gameOver || (currentTurn !== playerId && !isWordSelector)) return;
 
-
-    if (e.key === 'Enter') {
+    if (isWordSelector) {
+      if (e.key === 'Enter') {
+        handleWordSelection();
+      } else if (e.key === 'Backspace') {
+        setSelectedWord(word => word.slice(0, -1));
+      } else if (selectedWord.length < 5 && e.key.match(/^[A-Za-z]$/)) {
+        setSelectedWord(word => word + e.key.toUpperCase());
+      }
+    } else if (e.key === 'Enter') {
       socket.setMessage("");
       if (currentGuess.length !== 5) {
         return;
@@ -190,29 +217,41 @@ const Wordle = () => {
   
   return (
     <div className="wordle">
-      <div className="board">
-        {guesses.map((guess, i) => {
-          const feedback = guess ? getWordleFeedback(guess, solution) : null;
-          return (
-            <div key={i} className="row">
-              {Array.from({ length: 5 }, (_, j) => (
-                <div key={j} 
-                className={`cell ${feedback ? getColorClass(feedback[j]) : ''}`}>
-                  {guess ? guess[j] : ''} 
-                </div>
-              ))}
-            </div>
-          );
-        })}
-        <div className="row">
-          {currentGuess.split('').map((letter, i) => (
-            <div key={i} className="cell">{letter}</div>
-          ))}
-          {Array.from({ length: 5 - currentGuess.length }, (_, i) => (
-            <div key={i + currentGuess.length} className="cell"></div>
-          ))}
+      {isWordSelector ? (
+        <div className="word-selector">
+          <input 
+            type="text" 
+            value={selectedWord} 
+            onChange={(e) => setSelectedWord(e.target.value.toUpperCase())} 
+            maxLength={5}
+          />
+          <button onClick={handleWordSelection}>Select Word</button>
         </div>
-      </div>
+      ) : (
+        <div className="board">
+          {guesses.map((guess, i) => {
+            const feedback = guess ? getWordleFeedback(guess, solution) : null;
+            return (
+              <div key={i} className="row">
+                {Array.from({ length: 5 }, (_, j) => (
+                  <div key={j} 
+                  className={`cell ${feedback ? getColorClass(feedback[j]) : ''}`}>
+                    {guess ? guess[j] : ''} 
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          <div className="row">
+            {currentGuess.split('').map((letter, i) => (
+              <div key={i} className="cell">{letter}</div>
+            ))}
+            {Array.from({ length: 5 - currentGuess.length }, (_, i) => (
+              <div key={i + currentGuess.length} className="cell"></div>
+            ))}
+          </div>
+        </div>
+      )}
       {message && <div className="message">{message}</div>}
       <div className="keyboard">
         {keyboardLayout.map((row, rowIndex) => (
