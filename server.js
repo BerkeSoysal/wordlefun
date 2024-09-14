@@ -37,7 +37,7 @@ io.on('connection', (socket) => {
   // Join or create a game
   if (games.size === 0 || Array.from(games.values()).every(game => game.players.length === 2)) {
     console.log("Creating new game");
-    games.set(socket.id, { players: [socket.id], wordSelector: socket.id });
+    games.set(socket.id, { players: [socket.id], wordSelector: socket.id, solution: null });
     socket.emit('gameStart', { isSelector: true, turn: socket.id });
   } else {
     const [gameId, game] = Array.from(games.entries()).find(([_, g]) => g.players.length === 1);
@@ -48,20 +48,20 @@ io.on('connection', (socket) => {
 
   socket.on('selectWord', (word) => {
     const game = Array.from(games.values()).find(g => g.players.includes(socket.id));
-    if (!game || game.wordSelector !== socket.id) return;
+    if (!game || game.wordSelector !== socket.id || game.solution !== null) return;
 
     game.solution = word.toLowerCase();
     game.turn = game.players.find(id => id !== socket.id);
-    io.to(game.turn).emit('wordSelected', word);
+    io.to(game.players).emit('wordSelected', word);
     io.to(game.players).emit('turnChange', game.turn);
   });
 
   socket.on('makeGuess', (guess) => {
     const game = Array.from(games.values()).find(g => g.players.includes(socket.id));
-    if (!game || game.turn !== socket.id) return;
+    if (!game || game.turn !== socket.id || !game.solution) return;
 
     const otherPlayer = game.players.find(id => id !== socket.id);
-    io.to(otherPlayer).emit('opponentGuess', guess);
+    io.to(game.players).emit('opponentGuess', guess);
 
     if (guess.toLowerCase() === game.solution) {
       io.to(game.players).emit('gameOver', { winner: socket.id, word: game.solution });

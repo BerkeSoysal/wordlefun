@@ -77,37 +77,44 @@ const Wordle = () => {
   useEffect(() => {
     socket.on('connect', () => {
       setPlayerId(socket.id);
-      console.log("connected")
+      console.log("Connected");
     });
 
-    socket.on('gameStart', ({ isSelector, solution, turn }) => {
+    socket.on('gameStart', ({ isSelector, turn }) => {
       setIsWordSelector(isSelector);
-      if (!isSelector) {
-        setSolution(solution);
-      }
       setCurrentTurn(turn);
+      setMessage(isSelector ? "Select a word for your opponent to guess" : "Waiting for opponent to select a word");
     });
 
     socket.on('wordSelected', (word) => {
-      setSolution(word);
-      setCurrentTurn(playerId);
+      if (!isWordSelector) {
+        setSolution(word);
+        setMessage("Word selected. Start guessing!");
+      } else {
+        setMessage("Your opponent is now guessing your word.");
+      }
     });
 
-    socket.on('gameOver', () => {
-      setGameOver(true);
-    });
-
-    socket.on('turnChange', (nextTurn) => {
-      setCurrentTurn(nextTurn);
+    socket.on('turnChange', (turn) => {
+      setCurrentTurn(turn);
+      if (turn === playerId && !isWordSelector) {
+        setMessage("It's your turn to guess!");
+      } else if (turn !== playerId && !isWordSelector) {
+        setMessage("Waiting for opponent's guess...");
+      }
     });
 
     socket.on('opponentGuess', (guess) => {
       setGuesses(prevGuesses => {
         const newGuesses = [...prevGuesses];
-        const emptyIndex = newGuesses.findIndex(val => val === '');
+        const emptyIndex = newGuesses.findIndex(val => val === "");
         newGuesses[emptyIndex] = guess;
         return newGuesses;
       });
+    });
+
+    socket.on('gameOver', () => {
+      setGameOver(true);
     });
 
     return () => {
@@ -117,7 +124,7 @@ const Wordle = () => {
       socket.off('opponentGuess');
       socket.off('wordSelected');
     };
-  }, []);
+  }, [playerId, isWordSelector]);
 
   const handleWordSelection = useCallback(() => {
     if (selectedWord.length === 5 && cachedWordList.includes(selectedWord.toLowerCase())) {
@@ -137,9 +144,9 @@ const Wordle = () => {
   }, []);
 
   const handleKeyup = useCallback((e) => {
-    if (gameOver || (currentTurn !== playerId && !isWordSelector)) return;
+    if (gameOver) return;
 
-    if (isWordSelector) {
+    if (isWordSelector && currentTurn === playerId) {
       if (e.key === 'Enter') {
         handleWordSelection();
       } else if (e.key === 'Backspace') {
@@ -147,47 +154,49 @@ const Wordle = () => {
       } else if (selectedWord.length < 5 && e.key.match(/^[A-Za-z]$/)) {
         setSelectedWord(word => word + e.key.toUpperCase());
       }
-    } else if (e.key === 'Enter') {
-      socket.setMessage("");
-      if (currentGuess.length !== 5) {
-        return;
-      }
-      // Check if the guess has already been made
-      if (guesses.includes(currentGuess)) {
-        setMessage('You already guessed this word');
-        return;
-      }
-
-      // Check if the guess is in the cached word list
-      if (cachedWordList.includes(currentGuess.toLowerCase())) {
-        const newGuesses = [...guesses];
-        const emptyIndex = newGuesses.findIndex(val => val === '');
-        newGuesses[emptyIndex] = currentGuess;
-        setGuesses(newGuesses);
-        setCurrentGuess('');
-
-        if (currentGuess.toLowerCase() === solution.toLowerCase()) {
-          socket.emit('gameOver')
-          setMessage('Congratulations! You won!');
-        } else if (emptyIndex === 5) {
-          socket.emit('gameOver')
-          setMessage(`Game over! The word was ${solution}`);
+    } else if (!isWordSelector && currentTurn === playerId) {
+      if (e.key === 'Enter') {
+        socket.setMessage("");
+        if (currentGuess.length !== 5) {
+          return;
         }
-        socket.emit('makeGuess', currentGuess);
-      } else {
-        setMessage('Not a valid word');
+        // Check if the guess has already been made
+        if (guesses.includes(currentGuess)) {
+          setMessage('You already guessed this word');
+          return;
+        }
+
+        // Check if the guess is in the cached word list
+        if (cachedWordList.includes(currentGuess.toLowerCase())) {
+          const newGuesses = [...guesses];
+          const emptyIndex = newGuesses.findIndex(val => val === '');
+          newGuesses[emptyIndex] = currentGuess;
+          setGuesses(newGuesses);
+          setCurrentGuess('');
+
+          if (currentGuess.toLowerCase() === solution.toLowerCase()) {
+            socket.emit('gameOver')
+            setMessage('Congratulations! You won!');
+          } else if (emptyIndex === 5) {
+            socket.emit('gameOver')
+            setMessage(`Game over! The word was ${solution}`);
+          }
+          socket.emit('makeGuess', currentGuess);
+        } else {
+          setMessage('Not a valid word');
+        }
+      }
+
+      if (e.key === 'Backspace') {
+        setCurrentGuess(currentGuess.slice(0, -1));
+        return;
+      }
+
+      if (currentGuess.length < 5 && e.key.match(/^[A-Za-z]$/)) {
+        setCurrentGuess(oldGuess => oldGuess + e.key);
       }
     }
-
-    if (e.key === 'Backspace') {
-      setCurrentGuess(currentGuess.slice(0, -1));
-      return;
-    }
-
-    if (currentGuess.length < 5 && e.key.match(/^[A-Za-z]$/)) {
-      setCurrentGuess(oldGuess => oldGuess + e.key);
-    }
-  }, [currentGuess, guesses, solution, cachedWordList, gameOver, currentTurn, playerId]);
+  }, [currentGuess, guesses, solution, cachedWordList, gameOver, currentTurn, playerId, isWordSelector, selectedWord, handleWordSelection]);
 
   useEffect(() => {
     window.addEventListener('keyup', handleKeyup);
@@ -217,7 +226,7 @@ const Wordle = () => {
   
   return (
     <div className="wordle">
-      {isWordSelector ? (
+      {isWordSelector && currentTurn === playerId ? (
         <div className="word-selector">
           <input 
             type="text" 
@@ -227,31 +236,30 @@ const Wordle = () => {
           />
           <button onClick={handleWordSelection}>Select Word</button>
         </div>
-      ) : (
-        <div className="board">
-          {guesses.map((guess, i) => {
-            const feedback = guess ? getWordleFeedback(guess, solution) : null;
-            return (
-              <div key={i} className="row">
-                {Array.from({ length: 5 }, (_, j) => (
-                  <div key={j} 
-                  className={`cell ${feedback ? getColorClass(feedback[j]) : ''}`}>
-                    {guess ? guess[j] : ''} 
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-          <div className="row">
-            {currentGuess.split('').map((letter, i) => (
-              <div key={i} className="cell">{letter}</div>
-            ))}
-            {Array.from({ length: 5 - currentGuess.length }, (_, i) => (
-              <div key={i + currentGuess.length} className="cell"></div>
-            ))}
-          </div>
+      ) : null}
+      <div className="board">
+        {guesses.map((guess, i) => {
+          const feedback = guess ? getWordleFeedback(guess, solution) : null;
+          return (
+            <div key={i} className="row">
+              {Array.from({ length: 5 }, (_, j) => (
+                <div key={j} 
+                className={`cell ${feedback ? getColorClass(feedback[j]) : ''}`}>
+                  {guess ? guess[j] : ''} 
+                </div>
+              ))}
+            </div>
+          );
+        })}
+        <div className="row">
+          {currentGuess.split('').map((letter, i) => (
+            <div key={i} className="cell">{letter}</div>
+          ))}
+          {Array.from({ length: 5 - currentGuess.length }, (_, i) => (
+            <div key={i + currentGuess.length} className="cell"></div>
+          ))}
         </div>
-      )}
+      </div>
       {message && <div className="message">{message}</div>}
       <div className="keyboard">
         {keyboardLayout.map((row, rowIndex) => (
