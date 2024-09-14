@@ -156,7 +156,6 @@ const Wordle = () => {
       }
     } else if (!isWordSelector && currentTurn === playerId) {
       if (e.key === 'Enter') {
-        socket.setMessage("");
         if (currentGuess.length !== 5) {
           return;
         }
