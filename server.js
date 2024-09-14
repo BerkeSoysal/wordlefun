@@ -10,7 +10,12 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'client/build')));
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // For development, you can use "*". For production, specify your client's URL
+    methods: ["GET", "POST"]
+  }
+});
 
 const rooms = new Map();
 let words = [];
@@ -31,7 +36,7 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   socket.on('createRoom', ({ isPrivate }) => {
-    console.log("room creation")
+    console.log("room creation");
     const roomCode = generateRoomCode();
     rooms.set(roomCode, { players: [socket.id], isPrivate, wordSelector: socket.id });
     socket.join(roomCode);
@@ -73,13 +78,12 @@ io.on('connection', (socket) => {
 
   socket.on('selectWord', (word) => {
     const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
-    const room = io.sockets.adapter.rooms.get(roomCode);
+    const room = rooms.get(roomCode);
     if (!room || room.wordSelector !== socket.id) return;
-
     room.solution = word.toLowerCase();
-    const players = Array.from(room.values());
+    const players = Array.from(room.players);
     const otherPlayer = players.find(id => id !== socket.id);
-    io.to(otherPlayer).emit('wordSelected', word);
+    io.to(roomCode).emit('wordSelected', word);
     io.to(roomCode).emit('turnChange', otherPlayer);
   });
 
@@ -94,8 +98,6 @@ io.on('connection', (socket) => {
 
     if (guess.toLowerCase() === room.solution) {
       io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
-    } else {
-      io.to(roomCode).emit('turnChange', otherPlayer);
     }
   });
 
@@ -112,7 +114,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

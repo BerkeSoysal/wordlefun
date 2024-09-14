@@ -2,9 +2,19 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import './Wordle.css';
 
-const socket = io();
+const socket = io("http://localhost:3001");
 
 const Wordle = () => {
+
+
+  const keyboard = [
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+    ['Enter', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace']
+  ];
+
+
+
   const [gameState, setGameState] = useState('menu'); // 'menu', 'waiting', 'playing'
   const [roomCode, setRoomCode] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
@@ -96,6 +106,8 @@ const Wordle = () => {
       setError(message);
     });
 
+    
+
     return () => {
       socket.off('connect');
       socket.off('roomCreated');
@@ -114,6 +126,21 @@ const Wordle = () => {
 
   const handleJoinRoom = () => {
     socket.emit('joinRoom', { roomCode });
+  };
+
+  const handleKeyboardClick = (key) => {
+    if (gameOver || isWordSelector || currentTurn !== playerId) return;
+
+    if (key === 'Enter') {
+      if (currentGuess.length === 5) {
+        // Handle guess submission
+        // ... (your existing logic for submitting a guess)
+      }
+    } else if (key === 'Backspace') {
+      setCurrentGuess(prev => prev.slice(0, -1));
+    } else if (currentGuess.length < 5) {
+      setCurrentGuess(prev => prev + key);
+    }
   };
 
   const handleWordSelection = useCallback(() => {
@@ -200,7 +227,7 @@ const Wordle = () => {
           <input 
             type="text" 
             value={roomCode} 
-            onChange={(e) => setRoomCode(e.target.value.toLowerCase())} 
+            onChange={(e) => setRoomCode(e.target.value.toUpperCase())} 
             placeholder="Enter room code (optional)"
           />
           <button onClick={handleJoinRoom}>Join Room</button>
@@ -237,15 +264,18 @@ const Wordle = () => {
         </div>
       )}
       <div className="board">
-        {guesses.map((guess, i) => {
-          const feedback = getWordleFeedback(guess, solution);
+      {Array.from({ length: 6 }).map((_, i) => {
+        const guess = guesses[i] || '';
+        const feedback = getWordleFeedback(guess, solution)
+        return (
           <div key={i} className="row">
-            {Array.from({ length: 5 }, (_, j) => (
+            {Array.from({ length: 5 }).map((_, j) => (
               <div key={j} className={`cell ${feedback[j]}`}>
                 {guess[j] || ''}
               </div>
             ))}
           </div>
+        );
         })}
         <div className="row">
           {currentGuess.split('').map((letter, i) => (
@@ -263,22 +293,48 @@ const Wordle = () => {
           <button onClick={handlePlayAgain}>Play Again</button>
         </div>
       )}
+      <div className="keyboard">
+        {keyboard.map((row, i) => (
+          <div key={i} className="keyboard-row">
+            {row.map((key) => (
+              <button
+                key={key}
+                onClick={() => handleKeyboardClick(key)}
+                className={`key ${getKeyClass(key)}`}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
+    
   );
 };
 
+
+function getKeyClass(key) {
+  // Implement logic to color keys based on guesses
+  // This is a placeholder - you'll need to implement the actual logic
+  return '';
+}
 function getWordleFeedback(guess, solution) {
     // Initialize the result array with 'G' (incorrect letter)
-    let result = new Array(5).fill('R');
+    let result = new Array(5).fill('');
     
     // Create a copy of the solution and guess to manage letter position tracking
     let solutionCopy = solution.toLowerCase().split('');
     let guessCopy = guess.toLowerCase().split('');
     
+    if(guessCopy == '') { 
+      return result;
+    }
+
     // First pass: Mark 'R' for correct letters in the correct position
     for (let i = 0; i < 5; i++) {
         if (guessCopy[i] === solutionCopy[i]) {
-            result[i] = 'G';
+            result[i] = 'green';
             // Remove this letter from the solution copy to avoid re-matching
             solutionCopy[i] = null;
             guessCopy[i] = null;
@@ -287,10 +343,10 @@ function getWordleFeedback(guess, solution) {
     
     // Second pass: Mark 'Y' for correct letters in the wrong position
     for (let i = 0; i < 5; i++) {
-        if (result[i] !== 'G') { // Only check positions not marked 'G'
+        if (result[i] !== 'green') { // Only check positions not marked 'G'
             let guessLetter = guessCopy[i];
             if (guessLetter !== null && solutionCopy.includes(guessLetter)) {
-                result[i] = 'Y';
+                result[i] = 'yellow';
                 // Remove this letter from the solution copy to avoid re-matching
                 let index = solutionCopy.indexOf(guessLetter);
                 solutionCopy[index] = null;
