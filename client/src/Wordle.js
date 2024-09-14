@@ -267,16 +267,6 @@ const Wordle = () => {
   );
 };
 
-function getColorClass(guessLetter, solutionLetter) {
-  if (guessLetter.toLowerCase() === solutionLetter.toLowerCase()) {
-    return 'green';
-  } else if (solution.toLowerCase().includes(guessLetter.toLowerCase())) {
-    return 'yellow';
-  } else {
-    return 'gray';
-  }
-}
-
 function getWordleFeedback(guess, solution) {
     // Initialize the result array with 'G' (incorrect letter)
     let result = new Array(5).fill('R');
