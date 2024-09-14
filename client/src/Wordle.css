@@ -134,3 +134,41 @@
   border-radius: 5px;
   cursor: pointer;
 }
+
+
+.word-selector {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.word-selector input {
+  font-size: 24px;
+  padding: 10px 15px;
+  width: 200px;
+  text-transform: uppercase;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.word-selector button {
+  font-size: 20px;
+  padding: 12px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.word-selector button:hover {
+  background-color: #45a049;
+}
+
+.word-selector button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}

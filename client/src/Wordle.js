@@ -262,7 +262,7 @@ const Wordle = () => {
 
   return (
     <div className="wordle">
-      {isWordSelector ? (
+      {isWordSelector && (
         <div className="word-selector">
           <input 
             type="text" 
@@ -270,10 +270,13 @@ const Wordle = () => {
             onChange={(e) => setSelectedWord(e.target.value.toUpperCase())} 
             maxLength={5}
             disabled={!canSelectWord}
+            placeholder="Enter 5-letter word"
           />
-          <button onClick={handleWordSelection} disabled={!canSelectWord}>Select Word</button>
+          <button onClick={handleWordSelection} disabled={!canSelectWord}>
+            Select Word
+          </button>
         </div>
-      ) : null}
+      )}
       <div className="board">
         {guesses.map((guess, i) => {
           const feedback = guess ? getWordleFeedback(guess, solution) : null;
