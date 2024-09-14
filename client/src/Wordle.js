@@ -91,6 +91,7 @@ const Wordle = () => {
         setSolution(word);
         setMessage("Word selected. Start guessing!");
       } else {
+        setSolution(word);
         setMessage("Your opponent is now guessing your word.");
       }
     });
