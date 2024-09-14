@@ -66,6 +66,12 @@ const Wordle = () => {
   const [playerId, setPlayerId] = useState(null);
   const [currentTurn, setCurrentTurn] = useState(null);
 
+  const keyboardLayout = [
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+    ['Enter', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace']
+  ];
+
   useEffect(() => {
     socket.on('connect', () => {
       setPlayerId(socket.id);
@@ -115,6 +121,7 @@ const Wordle = () => {
 
 
     if (e.key === 'Enter') {
+      socket.setMessage("");
       if (currentGuess.length !== 5) {
         return;
       }
@@ -208,11 +215,19 @@ const Wordle = () => {
       </div>
       {message && <div className="message">{message}</div>}
       <div className="keyboard">
-        {Array.from({ length: 26 }, (_, index) => (
-          <div key={index} className="key" onClick={() => handleKeyClick(String.fromCharCode(65 + index))}>{String.fromCharCode(65 + index)}</div>
+        {keyboardLayout.map((row, rowIndex) => (
+          <div key={rowIndex} className="keyboard-row">
+            {row.map((key) => (
+              <button
+                key={key}
+                className={`key ${key === 'Enter' || key === 'Backspace' ? 'wide-key' : ''}`}
+                onClick={() => handleKeyClick(key)}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
         ))}
-        <div className="key backspace-key" onClick={() => handleKeyClick('Backspace')}>Backspace</div>
-        <div className="key enter-key" onClick={() => handleKeyClick('Enter')}>Enter</div>
       </div>
     </div>
   );
