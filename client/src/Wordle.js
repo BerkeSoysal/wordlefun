@@ -67,6 +67,7 @@ const Wordle = () => {
   const [currentTurn, setCurrentTurn] = useState(null);
   const [isWordSelector, setIsWordSelector] = useState(false);
   const [selectedWord, setSelectedWord] = useState('');
+  const [canSelectWord, setCanSelectWord] = useState(false);
 
   const keyboardLayout = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -80,10 +81,20 @@ const Wordle = () => {
       console.log("Connected");
     });
 
-    socket.on('gameStart', ({ isSelector, turn }) => {
+    socket.on('gameStart', ({ isSelector, canSelect, turn }) => {
       setIsWordSelector(isSelector);
+      setCanSelectWord(canSelect);
       setCurrentTurn(turn);
-      setMessage(isSelector ? "Select a word for your opponent to guess" : "Waiting for opponent to select a word");
+      if (isSelector) {
+        setMessage(canSelect ? "Select a word for your opponent to guess" : "Waiting for opponent to join...");
+      } else {
+        setMessage("Waiting for opponent to select a word");
+      }
+    });
+
+    socket.on('opponentJoined', ({ canSelect }) => {
+      setCanSelectWord(canSelect);
+      setMessage("Opponent joined. Select a word for them to guess.");
     });
 
     socket.on('wordSelected', (word) => {
@@ -123,17 +134,20 @@ const Wordle = () => {
       socket.off('turnChange');
       socket.off('opponentGuess');
       socket.off('wordSelected');
+      socket.off('opponentJoined');
     };
   }, [playerId, isWordSelector]);
 
   const handleWordSelection = useCallback(() => {
+    if (!canSelectWord) return;
     if (selectedWord.length === 5 && cachedWordList.includes(selectedWord.toLowerCase())) {
       socket.emit('selectWord', selectedWord);
       setMessage("Word selected. Waiting for opponent to guess.");
+      setCanSelectWord(false);
     } else {
       setMessage("Please select a valid 5-letter word.");
     }
-  }, [selectedWord, cachedWordList]);
+  }, [selectedWord, cachedWordList, canSelectWord]);
 
   useEffect(() => {
     // In a real app, you'd fetch this from an API
@@ -225,15 +239,16 @@ const Wordle = () => {
   
   return (
     <div className="wordle">
-      {isWordSelector && currentTurn === playerId ? (
+      {isWordSelector ? (
         <div className="word-selector">
           <input 
             type="text" 
             value={selectedWord} 
             onChange={(e) => setSelectedWord(e.target.value.toUpperCase())} 
             maxLength={5}
+            disabled={!canSelectWord}
           />
-          <button onClick={handleWordSelection}>Select Word</button>
+          <button onClick={handleWordSelection} disabled={!canSelectWord}>Select Word</button>
         </div>
       ) : null}
       <div className="board">

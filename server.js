@@ -38,12 +38,13 @@ io.on('connection', (socket) => {
   if (games.size === 0 || Array.from(games.values()).every(game => game.players.length === 2)) {
     console.log("Creating new game");
     games.set(socket.id, { players: [socket.id], wordSelector: socket.id, solution: null });
-    socket.emit('gameStart', { isSelector: true, turn: socket.id });
+    socket.emit('gameStart', { isSelector: true, canSelect: false, turn: socket.id });
   } else {
     const [gameId, game] = Array.from(games.entries()).find(([_, g]) => g.players.length === 1);
     game.players.push(socket.id);
-    io.to(game.players[0]).emit('gameStart', { isSelector: true, turn: game.wordSelector });
-    socket.emit('gameStart', { isSelector: false, turn: game.wordSelector });
+    io.to(game.wordSelector).emit('opponentJoined', { canSelect: true });
+    io.to(game.wordSelector).emit('gameStart', { isSelector: true, canSelect: true, turn: game.wordSelector });
+    socket.emit('gameStart', { isSelector: false, canSelect: false, turn: game.wordSelector });
   }
 
   socket.on('selectWord', (word) => {
