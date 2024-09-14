@@ -68,6 +68,7 @@ const Wordle = () => {
   const [isWordSelector, setIsWordSelector] = useState(false);
   const [selectedWord, setSelectedWord] = useState('');
   const [canSelectWord, setCanSelectWord] = useState(false);
+  const [showPlayAgain, setShowPlayAgain] = useState(false);
 
   const keyboardLayout = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -85,6 +86,12 @@ const Wordle = () => {
       setIsWordSelector(isSelector);
       setCanSelectWord(canSelect);
       setCurrentTurn(turn);
+      setGameOver(false);
+      setShowPlayAgain(false);
+      setGuesses(Array(6).fill(""));
+      setCurrentGuess('');
+      setSelectedWord('');
+      setSolution('');
       if (isSelector) {
         setMessage(canSelect ? "Select a word for your opponent to guess" : "Waiting for opponent to join...");
       } else {
@@ -124,8 +131,18 @@ const Wordle = () => {
       });
     });
 
-    socket.on('gameOver', () => {
+    socket.on('gameOver', ({ winner, word }) => {
       setGameOver(true);
+      setShowPlayAgain(true);
+      if (winner === playerId) {
+        setMessage(`Congratulations! You won! The word was ${word}`);
+      } else {
+        setMessage(`Game over! Your oppenent guessed the word ${word}`);
+      }
+    });
+
+    socket.on('playAgain', () => {
+      setShowPlayAgain(false);
     });
 
     return () => {
@@ -135,6 +152,7 @@ const Wordle = () => {
       socket.off('opponentGuess');
       socket.off('wordSelected');
       socket.off('opponentJoined');
+      socket.off('gameOver');
     };
   }, [playerId, isWordSelector]);
 
@@ -237,6 +255,11 @@ const Wordle = () => {
     }
   };
   
+  const handlePlayAgain = () => {
+    socket.emit('playAgain');
+    setShowPlayAgain(false);
+  };
+
   return (
     <div className="wordle">
       {isWordSelector ? (
@@ -290,6 +313,12 @@ const Wordle = () => {
           </div>
         ))}
       </div>
+      {showPlayAgain && (
+        <div className="play-again-prompt">
+          <p>Do you want to play again?</p>
+          <button onClick={handlePlayAgain}>Play Again</button>
+        </div>
+      )}
     </div>
   );
 };

@@ -77,4 +77,24 @@ io.on('connection', (socket) => {
       }
     });
   });
+
+  socket.on('gameOver', () => {
+    const game = Array.from(games.values()).find(g => g.players.includes(socket.id));
+    if (!game) return;
+
+    io.to(game.players).emit('gameOver', { winner: socket.id, word: game.solution });
+  });
+
+  socket.on('playAgain', () => {
+    const game = Array.from(games.values()).find(g => g.players.includes(socket.id));
+    if (!game) return;
+
+    // Switch roles
+    game.wordSelector = game.players.find(id => id !== game.wordSelector);
+    game.solution = null;
+
+    // Notify players of new game
+    io.to(game.wordSelector).emit('gameStart', { isSelector: true, canSelect: true, turn: game.wordSelector });
+    io.to(game.players.find(id => id !== game.wordSelector)).emit('gameStart', { isSelector: false, canSelect: false, turn: game.wordSelector });
+  });
 });
