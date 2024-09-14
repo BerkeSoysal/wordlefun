@@ -87,11 +87,10 @@ const Wordle = () => {
     });
 
     socket.on('wordSelected', (word) => {
+      setSolution(word);
       if (!isWordSelector) {
-        setSolution(word);
         setMessage("Word selected. Start guessing!");
       } else {
-        setSolution(word);
         setMessage("Your opponent is now guessing your word.");
       }
     });
