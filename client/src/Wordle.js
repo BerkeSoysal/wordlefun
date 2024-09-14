@@ -176,18 +176,8 @@ const Wordle = () => {
   }, []);
 
   const handleKeyup = useCallback((e) => {
-    if (gameOver) return;
-
-    if (isWordSelector && currentTurn === playerId) {
-      if (e.key === 'Enter') {
-        handleWordSelection();
-      } else if (e.key === 'Backspace') {
-        setSelectedWord(word => word.slice(0, -1));
-      } else if (selectedWord.length < 5 && e.key.match(/^[A-Za-z]$/)) {
-        setSelectedWord(word => word + e.key.toUpperCase());
-      }
-    } else if (!isWordSelector && currentTurn === playerId) {
-      if (e.key === 'Enter') {
+    if (gameOver || isWordSelector || currentTurn !== playerId) return;
+    if (e.key === 'Enter') {
         if (currentGuess.length !== 5) {
           return;
         }
@@ -226,7 +216,7 @@ const Wordle = () => {
       if (currentGuess.length < 5 && e.key.match(/^[A-Za-z]$/)) {
         setCurrentGuess(oldGuess => oldGuess + e.key);
       }
-    }
+    
   }, [currentGuess, guesses, solution, cachedWordList, gameOver, currentTurn, playerId, isWordSelector, selectedWord, handleWordSelection]);
 
   useEffect(() => {
