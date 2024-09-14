@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
@@ -11,64 +12,61 @@ app.use(express.static(path.join(__dirname, 'client/build')));
 const server = http.createServer(app);
 const io = new Server(server);
 
-function generateRoomCode() {
-  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 5; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
+const rooms = new Map();
+let words = [];
+
+fs.readFile('WORDS.txt', 'utf8', (err, data) => {
+  if (err) {
+    console.error('Error reading word list:', err);
+    return;
   }
-  return result;
+  words = data.trim().split('\n');
+});
+
+function generateRoomCode() {
+  return words[Math.floor(Math.random() * words.length)].toUpperCase();
 }
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   socket.on('createRoom', ({ isPrivate }) => {
-    let roomCode;
-    do {
-      roomCode = generateRoomCode();
-    } while (io.sockets.adapter.rooms.has(roomCode));
-
+    const roomCode = generateRoomCode();
+    rooms.set(roomCode, { players: [socket.id], isPrivate, wordSelector: socket.id });
     socket.join(roomCode);
     socket.emit('roomCreated', { roomCode, isPrivate });
-
-    // Store room metadata
-    io.sockets.adapter.rooms.get(roomCode).isPrivate = isPrivate;
-    io.sockets.adapter.rooms.get(roomCode).wordSelector = socket.id;
   });
 
   socket.on('joinRoom', ({ roomCode }) => {
-    const normalizedRoomCode = roomCode.toLowerCase();
-    const room = io.sockets.adapter.rooms.get(normalizedRoomCode);
-
-    if (normalizedRoomCode && room && room.size < 2 && (!room.isPrivate || roomCode)) {
-      socket.join(normalizedRoomCode);
-      const players = Array.from(room.values());
-      io.to(normalizedRoomCode).emit('gameStart', {
-        roomCode: normalizedRoomCode,
-        players,
-        wordSelector: room.wordSelector
-      });
-    } else if (!normalizedRoomCode) {
+    if (roomCode) {
+      // Join specific room
+      if (rooms.has(roomCode) && rooms.get(roomCode).players.length < 2) {
+        const room = rooms.get(roomCode);
+        room.players.push(socket.id);
+        socket.join(roomCode);
+        io.to(roomCode).emit('gameStart', { 
+          roomCode,
+          players: room.players,
+          wordSelector: room.wordSelector
+        });
+      } else {
+        socket.emit('joinError', 'Room not found or full');
+      }
+    } else {
       // Join random public room
-      const publicRooms = Array.from(io.sockets.adapter.rooms.entries())
-        .filter(([_, room]) => !room.isPrivate && room.size === 1);
-      
-      if (publicRooms.length > 0) {
-        const [randomRoomCode] = publicRooms[Math.floor(Math.random() * publicRooms.length)];
-        socket.join(randomRoomCode);
-        const room = io.sockets.adapter.rooms.get(randomRoomCode);
-        const players = Array.from(room.values());
-        io.to(randomRoomCode).emit('gameStart', {
-          roomCode: randomRoomCode,
-          players,
+      const availableRoom = Array.from(rooms.entries()).find(([_, room]) => !room.isPrivate && room.players.length === 1);
+      if (availableRoom) {
+        const [roomCode, room] = availableRoom;
+        room.players.push(socket.id);
+        socket.join(roomCode);
+        io.to(roomCode).emit('gameStart', { 
+          roomCode,
+          players: room.players,
           wordSelector: room.wordSelector
         });
       } else {
         socket.emit('joinError', 'No available public rooms');
       }
-    } else {
-      socket.emit('joinError', 'Room not found or full');
     }
   });
 
