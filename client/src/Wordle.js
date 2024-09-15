@@ -176,9 +176,8 @@ const Wordle = () => {
       const emptyIndex = newGuesses.findIndex(val => val === '');
       newGuesses[emptyIndex] = currentGuess;
       setGuesses(newGuesses);
-      setCurrentGuess('');
-
       socket.emit('makeGuess', currentGuess);
+      setCurrentGuess('');
     }
 
     if (e.key === 'Backspace') {
