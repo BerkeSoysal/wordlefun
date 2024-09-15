@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
     const otherPlayer = players.find(id => id !== socket.id);
     io.to(otherPlayer).emit('opponentGuess', guess);
 
-    if (guess.toLowerCase() === room.solution) {
+    if (guess.toLowerCase() === room.solution.toLowerCase()) {
       io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
     }
   });
