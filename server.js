@@ -16,7 +16,7 @@ const server = http.createServer(app);
     methods: ["GET", "POST"]
   }
 });*/
-const io = new Server(io);
+const io = new Server(server);
 
 const rooms = new Map();
 let words = [];
