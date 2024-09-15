@@ -179,12 +179,6 @@ const Wordle = () => {
       setCurrentGuess('');
 
       socket.emit('makeGuess', currentGuess);
-
-      if (currentGuess.toLowerCase() === solution.toLowerCase()) {
-        socket.emit('gameOver');
-      } else if (emptyIndex === 5) {
-        socket.emit('gameOver');
-      }
     }
 
     if (e.key === 'Backspace') {

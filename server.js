@@ -99,6 +99,8 @@ io.on('connection', (socket) => {
 
     if (guess.toLowerCase() === room.solution.toLowerCase()) {
       io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
+    } else if (room.guesses.length >= 6) {
+      io.in(roomCode).emit('gameOver', { winner: room.wordSelector, word: room.solution });
     }
   });
 
