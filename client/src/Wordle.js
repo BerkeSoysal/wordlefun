@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import './Wordle.css';
 
-const socket = io();
-//const socket = io("http://localhost:3001")
+//const socket = io();
+const socket = io("http://localhost:3001")
 const Wordle = () => {
 
 
@@ -32,7 +32,7 @@ const Wordle = () => {
   const [showPlayAgain, setShowPlayAgain] = useState(false);
   const [opponentWantsPlayAgain, setOpponentWantsPlayAgain] = useState(false);
   const [letterFeedbacks, setLetterFeedbacks] = useState(
-    Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
+    Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, 'gray']))
   );
 
   const keyupListenerRef = useRef(null);
@@ -211,7 +211,7 @@ const Wordle = () => {
       setMessage('You already guessed this word');
       return;
     }
-  
+  /*
     const feedback = getWordleFeedback(currentGuess, solution);
     
     setGuesses(prev => [...prev, currentGuess]);
@@ -228,6 +228,7 @@ const Wordle = () => {
       });
       return newFeedbacks;
     });
+    */
   
     socket.emit('makeGuess', currentGuess);
     setCurrentGuess('');
@@ -344,11 +345,12 @@ const Wordle = () => {
 
 
 function getKeyClass(key, letterFeedbacks) {
-  return letterFeedbacks[key.toUpperCase()] || '';
+  //console.log(letterFeedbacks);
+  return '';
 }
 function getWordleFeedback(guess, solution) {
     // Initialize the result array with 'G' (incorrect letter)
-    let result = new Array(5).fill('gray');
+    let result = new Array(5).fill('');
     
     // Create a copy of the solution and guess to manage letter position tracking
     let solutionCopy = solution.toLowerCase().split('');
