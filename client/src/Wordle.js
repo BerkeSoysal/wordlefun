@@ -30,6 +30,7 @@ const Wordle = () => {
   const [message, setMessage] = useState('');
   const [currentTurn, setCurrentTurn] = useState(null);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
+  const [opponentWantsPlayAgain, setOpponentWantsPlayAgain] = useState(false);
 
   const keyupListenerRef = useRef(null);
 
@@ -102,6 +103,10 @@ const Wordle = () => {
       }
     });
 
+    socket.on('opponentWantsPlayAgain', () => {
+      setOpponentWantsPlayAgain(true);
+    });
+
     socket.on('joinError', (message) => {
       setError(message);
     });
@@ -116,6 +121,7 @@ const Wordle = () => {
       socket.off('turnChange');
       socket.off('opponentGuess');
       socket.off('gameOver');
+      socket.off('opponentWantsPlayAgain');
       socket.off('joinError');
     };
   }, [playerId, isWordSelector]);
@@ -204,6 +210,7 @@ const Wordle = () => {
   const handlePlayAgain = () => {
     socket.emit('playAgain');
     setShowPlayAgain(false);
+    setOpponentWantsPlayAgain(false);
   };
 
   if (gameState === 'menu') {
@@ -291,6 +298,7 @@ const Wordle = () => {
         <div className="play-again-prompt">
           <p>Do you want to play again?</p>
           <button onClick={handlePlayAgain}>Play Again</button>
+          {opponentWantsPlayAgain && <p>Your opponent wants to play again!</p>}
         </div>
       )}
       <div className="keyboard">

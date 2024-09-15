@@ -102,6 +102,32 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('playAgain', () => {
+    const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    room.playAgainVotes = room.playAgainVotes || new Set();
+    room.playAgainVotes.add(socket.id);
+
+    if (room.playAgainVotes.size === room.players.length) {
+      // Reset the game
+      room.wordSelector = room.players.find(id => id !== room.wordSelector);
+      room.solution = null;
+      room.playAgainVotes.clear();
+
+      io.to(roomCode).emit('gameStart', {
+        roomCode,
+        players: room.players,
+        wordSelector: room.wordSelector
+      });
+    } else {
+      // Notify the other player that this player wants to play again
+      const otherPlayer = room.players.find(id => id !== socket.id);
+      io.to(otherPlayer).emit('opponentWantsPlayAgain');
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     socket.rooms.forEach(room => {
