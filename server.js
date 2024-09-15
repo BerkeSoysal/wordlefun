@@ -10,13 +10,13 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'client/build')));
 
 const server = http.createServer(app);
-/*const io = new Server(server, {
+const io = new Server(server, {
   cors: {
     origin: "*", // For development, you can use "*". For production, specify your client's URL
     methods: ["GET", "POST"]
   }
-});*/
-const io = new Server(server);
+});
+//const io = new Server(server);
 
 const rooms = new Map();
 let words = [];
@@ -91,17 +91,30 @@ io.on('connection', (socket) => {
   socket.on('makeGuess', (guess) => {
     const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
     const room = io.sockets.adapter.rooms.get(roomCode);
+    
     if (!room || room.wordSelector === socket.id) return;
+    
+      // Initialize guessCount if it doesn't exist
+      room.guessCount = room.guessCount || 0;
+      // Increment guess count
+      room.guessCount++;
 
     const players = Array.from(room.values());
     const otherPlayer = players.find(id => id !== socket.id);
-    io.to(otherPlayer).emit('opponentGuess', guess);
-
-    if (guess.toLowerCase() === room.solution.toLowerCase()) {
+    
+    io.to(roomCode).emit('opponentGuess', guess);
+    
+    if (guess.toLowerCase() === rooms.get(roomCode).solution.toLowerCase()) {
       io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
-    } else if (room.guesses.length >= 6) {
+    } else if (room.guessCount >= 6) {
       io.in(roomCode).emit('gameOver', { winner: room.wordSelector, word: room.solution });
     }
+
+    io.to(roomCode).emit('guessUpdate', { 
+      guessCount: room.guessCount, 
+      remainingGuesses: 6 - room.guessCount 
+    });
+
   });
 
   socket.on('playAgain', () => {

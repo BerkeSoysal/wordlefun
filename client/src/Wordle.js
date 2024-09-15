@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import './Wordle.css';
 
 const socket = io();
-
+//const socket = io("http://localhost:3001")
 const Wordle = () => {
 
 
@@ -88,9 +88,14 @@ const Wordle = () => {
       setGuesses(prevGuesses => {
         const newGuesses = [...prevGuesses];
         const emptyIndex = newGuesses.findIndex(val => val === "");
+        setCurrentGuess('');
         newGuesses[emptyIndex] = guess;
         return newGuesses;
       });
+    });
+
+    socket.on('guessUpdate', ({ guessCount, remainingGuesses }) => {
+      setMessage(`Guess ${guessCount}/6. You have ${remainingGuesses} guesses remaining.`);
     });
 
     socket.on('gameOver', ({ winner, word }) => {
@@ -122,6 +127,7 @@ const Wordle = () => {
       socket.off('opponentGuess');
       socket.off('gameOver');
       socket.off('opponentWantsPlayAgain');
+      socket.off('guessUpdate');
       socket.off('joinError');
     };
   }, [playerId, isWordSelector]);
@@ -171,13 +177,7 @@ const Wordle = () => {
         setMessage('You already guessed this word');
         return;
       }
-
-      const newGuesses = [...guesses];
-      const emptyIndex = newGuesses.findIndex(val => val === '');
-      newGuesses[emptyIndex] = currentGuess;
-      setGuesses(newGuesses);
       socket.emit('makeGuess', currentGuess);
-      setCurrentGuess('');
     }
 
     if (e.key === 'Backspace') {
