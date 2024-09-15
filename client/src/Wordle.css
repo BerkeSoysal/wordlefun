@@ -5,7 +5,17 @@
 }
 
 
+.key.correct {
+  background-color: #6aaa64; /* Green */
+}
 
+.key.present {
+  background-color: #c9b458; /* Yellow */
+}
+
+.key.absent {
+  background-color: #787c7e; /* Gray */
+}
 
 
 .cell.green {

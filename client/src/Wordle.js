@@ -31,6 +31,9 @@ const Wordle = () => {
   const [currentTurn, setCurrentTurn] = useState(null);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
   const [opponentWantsPlayAgain, setOpponentWantsPlayAgain] = useState(false);
+  const [letterFeedbacks, setLetterFeedbacks] = useState(
+    Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
+  );
 
   const keyupListenerRef = useRef(null);
 
@@ -64,10 +67,6 @@ const Wordle = () => {
         setMessage("Waiting for opponent to select a word");
       }
     });
-
-    const [letterFeedbacks, setLetterFeedbacks] = useState(
-      Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
-    );
 
     socket.on('wordSelected', (word) => {
       setSolution(word);
@@ -330,7 +329,7 @@ const Wordle = () => {
               <button
                 key={key}
                 onClick={() => handleKeyboardClick(key)}
-                className={`key ${getKeyClass(key)}`}
+                className={`key ${getKeyClass(key), letterFeedbacks}`}
               >
                 {key}
               </button>
@@ -344,7 +343,7 @@ const Wordle = () => {
 };
 
 
-function getKeyClass(key) {
+function getKeyClass(key, letterFeedbacks) {
   return letterFeedbacks[key.toUpperCase()] || '';
 }
 function getWordleFeedback(guess, solution) {
