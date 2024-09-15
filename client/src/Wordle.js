@@ -65,6 +65,10 @@ const Wordle = () => {
       }
     });
 
+    const [letterFeedbacks, setLetterFeedbacks] = useState(
+      Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
+    );
+
     socket.on('wordSelected', (word) => {
       setSolution(word);
       if (!isWordSelector) {
@@ -144,10 +148,8 @@ const Wordle = () => {
     if (gameOver || isWordSelector || currentTurn !== playerId) return;
 
     if (key === 'Enter') {
-      if (currentGuess.length === 5) {
-        // Handle guess submission
-        // ... (your existing logic for submitting a guess)
-      }
+      handleGuessSubmission();
+
     } else if (key === 'Backspace') {
       setCurrentGuess(prev => prev.slice(0, -1));
     } else if (currentGuess.length < 5) {
@@ -170,14 +172,7 @@ const Wordle = () => {
     if (gameOver || isWordSelector || currentTurn !== playerId) return;
 
     if (e.key === 'Enter') {
-      if (currentGuess.length !== 5) {
-        return;
-      }
-      if (guesses.includes(currentGuess)) {
-        setMessage('You already guessed this word');
-        return;
-      }
-      socket.emit('makeGuess', currentGuess);
+      handleGuessSubmission();
     }
 
     if (e.key === 'Backspace') {
@@ -205,6 +200,40 @@ const Wordle = () => {
     setShowPlayAgain(false);
     setOpponentWantsPlayAgain(false);
   };
+
+  const handleGuessSubmission = useCallback(() => {
+    if (gameOver || isWordSelector || currentTurn !== playerId) return;
+  
+    if (currentGuess.length !== 5) {
+      setMessage('Word must be 5 letters');
+      return;
+    }
+    if (guesses.includes(currentGuess)) {
+      setMessage('You already guessed this word');
+      return;
+    }
+  
+    const feedback = getWordleFeedback(currentGuess, solution);
+    
+    setGuesses(prev => [...prev, currentGuess]);
+    setLetterFeedbacks(prevFeedbacks => {
+      const newFeedbacks = { ...prevFeedbacks };
+      currentGuess.toUpperCase().split('').forEach((letter, index) => {
+        if (feedback[index] === 'green') {
+          newFeedbacks[letter] = 'correct';
+        } else if (feedback[index] === 'yellow' && newFeedbacks[letter] !== 'correct') {
+          newFeedbacks[letter] = 'present';
+        } else if (feedback[index] === 'grey' && !['correct', 'present'].includes(newFeedbacks[letter])) {
+          newFeedbacks[letter] = 'absent';
+        }
+      });
+      return newFeedbacks;
+    });
+  
+    socket.emit('makeGuess', currentGuess);
+    setCurrentGuess('');
+  }, [currentGuess, guesses, gameOver, isWordSelector, currentTurn, playerId, solution, socket]);
+  
 
   if (gameState === 'menu') {
     return (
@@ -316,13 +345,11 @@ const Wordle = () => {
 
 
 function getKeyClass(key) {
-  // Implement logic to color keys based on guesses
-  // This is a placeholder - you'll need to implement the actual logic
-  return '';
+  return letterFeedbacks[key.toUpperCase()] || '';
 }
 function getWordleFeedback(guess, solution) {
     // Initialize the result array with 'G' (incorrect letter)
-    let result = new Array(5).fill('');
+    let result = new Array(5).fill('gray');
     
     // Create a copy of the solution and guess to manage letter position tracking
     let solutionCopy = solution.toLowerCase().split('');
