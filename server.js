@@ -86,6 +86,10 @@ io.on('connection', (socket) => {
     const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
     const room = rooms.get(roomCode);
     if (!room || room.wordSelector !== socket.id) return;
+    if (!words.includes(word.toLowerCase())) {
+      io.to(roomCode).emit('invalidWord', 'The selected word is not in the word list');
+      return;
+    }
     room.solution = word.toLowerCase();
     const players = Array.from(room.players);
     const otherPlayer = players.find(id => id !== socket.id);
@@ -98,7 +102,11 @@ io.on('connection', (socket) => {
     const room = io.sockets.adapter.rooms.get(roomCode);
     
     if (!room || room.wordSelector === socket.id) return;
-    
+    if (!words.includes(guess.toLowerCase())) {
+      io.to(roomCode).emit('invalidGuess', 'The guessed word is not in the word list');
+      return;
+    }
+  
       // Initialize guessCount if it doesn't exist
       room.guessCount = room.guessCount || 0;
       // Increment guess count

@@ -123,6 +123,16 @@ const Wordle = () => {
       setError(message);
     });
 
+    socket.on('invalidWord', (message) => {
+      setMessage(message);
+      setSelectedWord('');
+    });
+  
+    socket.on('invalidGuess', (message) => {
+      setMessage(message);
+      setCurrentGuess('');
+    });
+
     
 
     return () => {
@@ -135,6 +145,8 @@ const Wordle = () => {
       socket.off('gameOver');
       socket.off('opponentWantsPlayAgain');
       socket.off('guessUpdate');
+      socket.off('invalidWord');
+      socket.off('invalidGuess');
       socket.off('joinError');
     };
   }, [playerId, isWordSelector]);
@@ -236,6 +248,7 @@ const Wordle = () => {
       setMessage('You already guessed this word');
       return;
     }
+
 
     socket.emit('makeGuess', currentGuess);
     setCurrentGuess('');
