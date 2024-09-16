@@ -194,6 +194,13 @@ const Wordle = () => {
     }
   }, [solution, guesses]);
 
+  const handleWordInputKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission if within a form
+      handleWordSelection();
+    }
+  };
+
   const handleWordSelection = useCallback(() => {
     if (!canSelectWord) return;
     if (selectedWord.length === 5) {
@@ -305,7 +312,8 @@ const Wordle = () => {
           <input 
             type="text" 
             value={selectedWord} 
-            onChange={(e) => setSelectedWord(e.target.value.toUpperCase())} 
+            onChange={(e) => setSelectedWord(e.target.value.toUpperCase())}
+            onKeyDown={handleWordInputKeyPress}
             maxLength={5}
             disabled={!canSelectWord}
             placeholder="Enter 5-letter word"
