@@ -197,8 +197,6 @@ const Wordle = () => {
     if (!canSelectWord) return;
     if (selectedWord.length === 5) {
       socket.emit('selectWord', selectedWord);
-      setMessage("Word selected. Waiting for opponent to guess.");
-      setCanSelectWord(false);
     } else {
       setMessage("Please select a valid 5-letter word.");
     }
@@ -251,7 +249,6 @@ const Wordle = () => {
 
 
     socket.emit('makeGuess', currentGuess);
-    setCurrentGuess('');
   }, [currentGuess, guesses, gameOver, isWordSelector, currentTurn, playerId, solution, socket]);
   
 
