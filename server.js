@@ -30,7 +30,12 @@ fs.readFile('WORDS.txt', 'utf8', (err, data) => {
 });
 
 function generateRoomCode() {
-  return words[Math.floor(Math.random() * words.length)].toUpperCase();
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '';
+  for (let i = 0; i < 5; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
 }
 
 io.on('connection', (socket) => {
@@ -129,6 +134,7 @@ io.on('connection', (socket) => {
       // Reset the game
       room.wordSelector = room.players.find(id => id !== room.wordSelector);
       room.solution = null;
+      room.guessCount = 0;
       room.playAgainVotes.clear();
 
       io.to(roomCode).emit('gameStart', {

@@ -58,6 +58,9 @@ const Wordle = () => {
       setCurrentGuess('');
       setSelectedWord('');
       setSolution('');
+      setLetterFeedbacks(
+        Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
+      );
       setCurrentTurn(wordSelector);
       if (socket.id === wordSelector) {
         setCanSelectWord(true);
