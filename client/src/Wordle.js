@@ -79,6 +79,7 @@ const Wordle = () => {
         setCurrentTurn(socket.id);
       } else {
         setMessage("Your opponent is now guessing your word.");
+        setCanSelectWord(false);
       }
     });
 
