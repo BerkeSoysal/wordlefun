@@ -32,7 +32,7 @@ const Wordle = () => {
   const [showPlayAgain, setShowPlayAgain] = useState(false);
   const [opponentWantsPlayAgain, setOpponentWantsPlayAgain] = useState(false);
   const [letterFeedbacks, setLetterFeedbacks] = useState(
-    Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, 'gray']))
+    Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
   );
 
   const keyupListenerRef = useRef(null);
@@ -95,19 +95,24 @@ const Wordle = () => {
         newGuesses[emptyIndex] = guess;
         return newGuesses;
       });
-      let feedback = getWordleFeedback(guess, solution);
-      let letterFeedbacksCopy = { ...letterFeedbacks };
-      feedback.forEach((color) => {
-        if(color==='green') {
-          letterFeedbacksCopy[guess] = 'correct';
-        } else if(color==='yellow' && letterFeedbacksCopy[guess] !== 'correct') {
-          letterFeedbacksCopy[guess] = 'present';
-        } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[guess])) {
-          letterFeedbacksCopy[guess] = 'absent';
-        }
-      });
-      setLetterFeedbacks(letterFeedbacksCopy);
     });
+
+    useEffect(() => {
+      if (solution && currentGuess) {
+        let feedback = getWordleFeedback(guess, solution);
+        let letterFeedbacksCopy = { ...letterFeedbacks };
+        feedback.forEach((color) => {
+          if(color==='green') {
+            letterFeedbacksCopy[guess] = 'correct';
+          } else if(color==='yellow' && letterFeedbacksCopy[guess] !== 'correct') {
+            letterFeedbacksCopy[guess] = 'present';
+          } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[guess])) {
+            letterFeedbacksCopy[guess] = 'absent';
+          }
+        });
+        setLetterFeedbacks(letterFeedbacksCopy);
+      }
+    }, [solution, currentGuess]);
 
     socket.on('guessUpdate', ({ guessCount, remainingGuesses }) => {
       setMessage(`Guess ${guessCount}/6. You have ${remainingGuesses} guesses remaining.`);
@@ -223,25 +228,7 @@ const Wordle = () => {
       setMessage('You already guessed this word');
       return;
     }
-  /*
-    const feedback = getWordleFeedback(currentGuess, solution);
-    
-    setGuesses(prev => [...prev, currentGuess]);
-    setLetterFeedbacks(prevFeedbacks => {
-      const newFeedbacks = { ...prevFeedbacks };
-      currentGuess.toUpperCase().split('').forEach((letter, index) => {
-        if (feedback[index] === 'green') {
-          newFeedbacks[letter] = 'correct';
-        } else if (feedback[index] === 'yellow' && newFeedbacks[letter] !== 'correct') {
-          newFeedbacks[letter] = 'present';
-        } else if (feedback[index] === 'grey' && !['correct', 'present'].includes(newFeedbacks[letter])) {
-          newFeedbacks[letter] = 'absent';
-        }
-      });
-      return newFeedbacks;
-    });
-    */
-  
+
     socket.emit('makeGuess', currentGuess);
     setCurrentGuess('');
   }, [currentGuess, guesses, gameOver, isWordSelector, currentTurn, playerId, solution, socket]);
