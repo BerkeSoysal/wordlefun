@@ -342,7 +342,7 @@ const Wordle = () => {
               <button
                 key={key}
                 onClick={() => handleKeyboardClick(key)}
-                className={`key ${getKeyClass(key), letterFeedbacks}`}
+                className={`key ${getKeyClass(key, letterFeedbacks)}`}
               >
                 {key}
               </button>
