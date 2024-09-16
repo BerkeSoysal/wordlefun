@@ -99,7 +99,7 @@ const Wordle = () => {
 
     useEffect(() => {
       if (solution && currentGuess) {
-        let feedback = getWordleFeedback(guess, solution);
+        let feedback = getWordleFeedback(currentGuess, solution);
         let letterFeedbacksCopy = { ...letterFeedbacks };
         feedback.forEach((color) => {
           if(color==='green') {
