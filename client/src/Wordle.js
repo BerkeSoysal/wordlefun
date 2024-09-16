@@ -157,21 +157,25 @@ const Wordle = () => {
   };
 
   useEffect(() => {
-    if (solution && currentGuess) {
-      let feedback = getWordleFeedback(currentGuess, solution);
-      let letterFeedbacksCopy = { ...letterFeedbacks };
-      feedback.forEach((color, index) => {
-        if(color==='green') {
-          letterFeedbacksCopy[currentGuess[index]] = 'correct';
-        } else if(color==='yellow' && letterFeedbacksCopy[currentGuess[index]] !== 'correct') {
-          letterFeedbacksCopy[currentGuess[index]] = 'present';
-        } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[currentGuess[index]])) {
-          letterFeedbacksCopy[currentGuess[index]] = 'absent';
+    if (solution && guesses.length > 0) {
+      guesses.forEach((guess, i) => {
+        if (guess) {
+          let feedback = getWordleFeedback(guess, solution);
+          let letterFeedbacksCopy = { ...letterFeedbacks };
+          feedback.forEach((color, index) => {
+            if(color==='green') {
+              letterFeedbacksCopy[guess[index]] = 'correct';
+            } else if(color==='yellow' && letterFeedbacksCopy[guess[index]] !== 'correct') {
+              letterFeedbacksCopy[guess[index]] = 'present';
+            } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[guess[index]])) {
+              letterFeedbacksCopy[guess[index]] = 'absent';
+            }
+          });
+          setLetterFeedbacks(letterFeedbacksCopy);
         }
       });
-      setLetterFeedbacks(letterFeedbacksCopy);
     }
-  }, [solution, currentGuess]);
+  }, [solution, guesses]);
 
   const handleWordSelection = useCallback(() => {
     if (!canSelectWord) return;
