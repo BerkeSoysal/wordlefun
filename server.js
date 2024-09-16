@@ -21,7 +21,7 @@ const io = new Server(server);
 const rooms = new Map();
 let words = [];
 
-fs.readFile('WORDS.txt', 'utf8', (err, data) => {
+fs.readFile('wordlist.txt', 'utf8', (err, data) => {
   if (err) {
     console.error('Error reading word list:', err);
     return;
