@@ -5,12 +5,12 @@ import './Wordle.css';
 const socket = io();
 //const socket = io("http://localhost:3001")
 const Wordle = () => {
-
+//the delete symbol --> ⌫
 
   const keyboard = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['Enter', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace']
+    ['Enter', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫']
   ];
 
 
@@ -149,7 +149,7 @@ const Wordle = () => {
     if (key === 'Enter') {
       handleGuessSubmission();
 
-    } else if (key === 'Backspace') {
+    } else if (key === '⌫') {
       setCurrentGuess(prev => prev.slice(0, -1));
     } else if (currentGuess.length < 5) {
       setCurrentGuess(prev => prev + key);
