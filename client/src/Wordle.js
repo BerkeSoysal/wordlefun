@@ -358,7 +358,7 @@ const Wordle = () => {
 
 function getKeyClass(key, letterFeedbacks) {
   //console.log(letterFeedbacks);
-  return '';
+  return letterFeedbacks[key] || '';
 }
 function getWordleFeedback(guess, solution) {
     // Initialize the result array with 'G' (incorrect letter)
