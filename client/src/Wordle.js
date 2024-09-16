@@ -95,6 +95,18 @@ const Wordle = () => {
         newGuesses[emptyIndex] = guess;
         return newGuesses;
       });
+      let feedback = getWordleFeedback(guess, solution);
+      let letterFeedbacksCopy = { ...letterFeedbacks };
+      feedback.forEach((color) => {
+        if(color==='green') {
+          letterFeedbacksCopy[guess] = 'correct';
+        } else if(color==='yellow' && letterFeedbacksCopy[guess] !== 'correct') {
+          letterFeedbacksCopy[guess] = 'present';
+        } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[guess])) {
+          letterFeedbacksCopy[guess] = 'absent';
+        }
+      });
+      setLetterFeedbacks(letterFeedbacksCopy);
     });
 
     socket.on('guessUpdate', ({ guessCount, remainingGuesses }) => {
