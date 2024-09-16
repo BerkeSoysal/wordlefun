@@ -242,29 +242,31 @@ const Wordle = () => {
     return (
       <div className="menu">
         <h1>Wordle Multiplayer</h1>
-        <div>
-          <h2>Create a Room</h2>
-          <label>
+        <div className="menu-container">
+          <div>
+            <h2>Create a Room</h2>
+            <label>
+              <input 
+                type="checkbox" 
+                checked={isPrivate} 
+                onChange={(e) => setIsPrivate(e.target.checked)} 
+              />
+              Private Room
+            </label>
+            <button onClick={handleCreateRoom}>Create Room</button>
+          </div>
+          <div>
+            <h2>Join a Room</h2>
             <input 
-              type="checkbox" 
-              checked={isPrivate} 
-              onChange={(e) => setIsPrivate(e.target.checked)} 
+              type="text" 
+              value={roomCode} 
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase())} 
+              placeholder="Enter room code (optional)"
             />
-            Private Room
-          </label>
-          <button onClick={handleCreateRoom}>Create Room</button>
+            <button onClick={handleJoinRoom}>Join Room</button>
+          </div>
+          {error && <p className="error">{error}</p>}
         </div>
-        <div>
-          <h2>Join a Room</h2>
-          <input 
-            type="text" 
-            value={roomCode} 
-            onChange={(e) => setRoomCode(e.target.value.toUpperCase())} 
-            placeholder="Enter room code (optional)"
-          />
-          <button onClick={handleJoinRoom}>Join Room</button>
-        </div>
-        {error && <p className="error">{error}</p>}
       </div>
     );
   }
@@ -273,7 +275,10 @@ const Wordle = () => {
     return (
       <div className="waiting">
         <h2>Waiting for opponent</h2>
-        <p>Room Code: {roomCode}</p>
+        <div className="loading-spinner"></div>
+        <p>Room Code:</p>
+        <div className="room-code">{roomCode}</div>
+        <p>Share this code with your friend to start the game!</p>
       </div>
     );
   }
