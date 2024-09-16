@@ -167,7 +167,7 @@ const Wordle = () => {
               letterFeedbacksCopy[guess[index]] = 'correct';
             } else if(color==='yellow' && letterFeedbacksCopy[guess[index]] !== 'correct') {
               letterFeedbacksCopy[guess[index]] = 'present';
-            } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[guess[index]])) {
+            } else if(color==='' && !['correct', 'present'].includes(letterFeedbacksCopy[guess[index]])) {
               letterFeedbacksCopy[guess[index]] = 'absent';
             }
           });
