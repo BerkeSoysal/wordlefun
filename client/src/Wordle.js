@@ -104,9 +104,9 @@ const Wordle = () => {
         feedback.forEach((color, index) => {
           if(color==='green') {
             letterFeedbacksCopy[currentGuess[index]] = 'correct';
-          } else if(color==='yellow' && letterFeedbacksCopy[guess] !== 'correct') {
+          } else if(color==='yellow' && letterFeedbacksCopy[currentGuess[index]] !== 'correct') {
             letterFeedbacksCopy[currentGuess[index]] = 'present';
-          } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[guess])) {
+          } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[currentGuess[index]])) {
             letterFeedbacksCopy[currentGuess[index]] = 'absent';
           }
         });
