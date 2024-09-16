@@ -56,6 +56,7 @@ const Wordle = () => {
       setShowPlayAgain(false);
       setGuesses(Array(6).fill(""));
       setCurrentGuess('');
+      setGuesses(Array(6).fill(""));
       setSelectedWord('');
       setSolution('');
       setLetterFeedbacks(
