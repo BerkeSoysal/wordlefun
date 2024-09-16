@@ -101,13 +101,13 @@ const Wordle = () => {
       if (solution && currentGuess) {
         let feedback = getWordleFeedback(currentGuess, solution);
         let letterFeedbacksCopy = { ...letterFeedbacks };
-        feedback.forEach((color) => {
+        feedback.forEach((color, index) => {
           if(color==='green') {
-            letterFeedbacksCopy[guess] = 'correct';
+            letterFeedbacksCopy[currentGuess[index]] = 'correct';
           } else if(color==='yellow' && letterFeedbacksCopy[guess] !== 'correct') {
-            letterFeedbacksCopy[guess] = 'present';
+            letterFeedbacksCopy[currentGuess[index]] = 'present';
           } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[guess])) {
-            letterFeedbacksCopy[guess] = 'absent';
+            letterFeedbacksCopy[currentGuess[index]] = 'absent';
           }
         });
         setLetterFeedbacks(letterFeedbacksCopy);
