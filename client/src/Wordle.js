@@ -97,23 +97,6 @@ const Wordle = () => {
       });
     });
 
-    useEffect(() => {
-      if (solution && currentGuess) {
-        let feedback = getWordleFeedback(currentGuess, solution);
-        let letterFeedbacksCopy = { ...letterFeedbacks };
-        feedback.forEach((color, index) => {
-          if(color==='green') {
-            letterFeedbacksCopy[currentGuess[index]] = 'correct';
-          } else if(color==='yellow' && letterFeedbacksCopy[currentGuess[index]] !== 'correct') {
-            letterFeedbacksCopy[currentGuess[index]] = 'present';
-          } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[currentGuess[index]])) {
-            letterFeedbacksCopy[currentGuess[index]] = 'absent';
-          }
-        });
-        setLetterFeedbacks(letterFeedbacksCopy);
-      }
-    }, [solution, currentGuess]);
-
     socket.on('guessUpdate', ({ guessCount, remainingGuesses }) => {
       setMessage(`Guess ${guessCount}/6. You have ${remainingGuesses} guesses remaining.`);
     });
@@ -172,6 +155,23 @@ const Wordle = () => {
       setCurrentGuess(prev => prev + key);
     }
   };
+
+  useEffect(() => {
+    if (solution && currentGuess) {
+      let feedback = getWordleFeedback(currentGuess, solution);
+      let letterFeedbacksCopy = { ...letterFeedbacks };
+      feedback.forEach((color, index) => {
+        if(color==='green') {
+          letterFeedbacksCopy[currentGuess[index]] = 'correct';
+        } else if(color==='yellow' && letterFeedbacksCopy[currentGuess[index]] !== 'correct') {
+          letterFeedbacksCopy[currentGuess[index]] = 'present';
+        } else if(color==='gray' && !['correct', 'present'].includes(letterFeedbacksCopy[currentGuess[index]])) {
+          letterFeedbacksCopy[currentGuess[index]] = 'absent';
+        }
+      });
+      setLetterFeedbacks(letterFeedbacksCopy);
+    }
+  }, [solution, currentGuess]);
 
   const handleWordSelection = useCallback(() => {
     if (!canSelectWord) return;
