@@ -243,6 +243,13 @@ const Wordle = () => {
     setOpponentWantsPlayAgain(false);
   };
 
+  const handleJoinRoomEnter = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission if within a form
+      handleJoinRoom();
+    }
+  }
+
   const handleGuessSubmission = useCallback(() => {
     if (gameOver || isWordSelector || currentTurn !== playerId) return;
   
@@ -283,6 +290,7 @@ const Wordle = () => {
               type="text" 
               value={roomCode} 
               onChange={(e) => setRoomCode(e.target.value.toUpperCase())} 
+              onKeyDown={handleJoinRoomEnter()}
               placeholder="Enter room code (optional)"
             />
             <button onClick={handleJoinRoom}>Join Room</button>
