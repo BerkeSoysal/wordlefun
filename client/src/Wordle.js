@@ -290,7 +290,7 @@ const Wordle = () => {
               type="text" 
               value={roomCode} 
               onChange={(e) => setRoomCode(e.target.value.toUpperCase())} 
-              onKeyDown={handleJoinRoomEnter()}
+              onKeyDown={handleJoinRoomEnter}
               placeholder="Enter room code (optional)"
             />
             <button onClick={handleJoinRoom}>Join Room</button>
