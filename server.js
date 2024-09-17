@@ -68,10 +68,8 @@ io.on('connection', (socket) => {
           players: room.players,
           wordSelector: room.wordSelector
         });
-        if (room.players.length === 2) {
-          waitingRooms--;
-          io.emit('statsUpdate', { activePlayers, waitingRooms });
-        }
+        waitingRooms--;
+        io.emit('statsUpdate', { activePlayers, waitingRooms });
       } else {
         socket.emit('joinError', 'Room not found or full');
       }
