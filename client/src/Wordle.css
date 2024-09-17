@@ -17,6 +17,16 @@
   background-color: #787c7e; /* Gray */
 }
 
+.create-room-container {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.checkbox-container {
+  margin-right: 5px;
+}
+
 
 .cell.green {
   background-color: #6aaa64;
