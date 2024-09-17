@@ -85,6 +85,8 @@ io.on('connection', (socket) => {
           players: room.players,
           wordSelector: room.wordSelector
         });
+        waitingRooms--;
+        io.emit('statsUpdate', { activePlayers, waitingRooms });
       } else {
         socket.emit('joinError', 'No available public rooms');
       }
