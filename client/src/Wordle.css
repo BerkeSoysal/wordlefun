@@ -217,7 +217,7 @@
   color: white;
   border: none;
   padding: 10px 20px;
-  margin: 10px 0 10px 10px;
+  margin: 10px 0;
   border-radius: 5px;
   font-size: 1rem;
   cursor: pointer;
@@ -234,6 +234,7 @@
   padding: 10px;
   border-radius: 5px;
   border: none;
+  margin-right: 5px;
 }
 
 .waiting .room-code {
@@ -254,4 +255,17 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.stats {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.stats p {
+  margin: 5px 0;
+  font-size: 14px;
 }

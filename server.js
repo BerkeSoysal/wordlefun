@@ -20,6 +20,8 @@ const io = new Server(server);
 
 const rooms = new Map();
 let words = [];
+let activePlayers = 0;
+let waitingRooms = 0;
 
 fs.readFile('wordlist.txt', 'utf8', (err, data) => {
   if (err) {
@@ -39,6 +41,9 @@ function generateRoomCode() {
 }
 
 io.on('connection', (socket) => {
+  activePlayers++;
+  io.emit('statsUpdate', { activePlayers, waitingRooms });
+
   console.log('A user connected:', socket.id);
 
   socket.on('createRoom', ({ isPrivate }) => {
@@ -47,6 +52,8 @@ io.on('connection', (socket) => {
     rooms.set(roomCode, { players: [socket.id], isPrivate, wordSelector: socket.id });
     socket.join(roomCode);
     socket.emit('roomCreated', { roomCode, isPrivate });
+    waitingRooms++;
+    io.emit('statsUpdate', { activePlayers, waitingRooms });
   });
 
   socket.on('joinRoom', ({ roomCode }) => {
@@ -61,6 +68,10 @@ io.on('connection', (socket) => {
           players: room.players,
           wordSelector: room.wordSelector
         });
+        if (room.players.length === 2) {
+          waitingRooms--;
+          io.emit('statsUpdate', { activePlayers, waitingRooms });
+        }
       } else {
         socket.emit('joinError', 'Room not found or full');
       }
@@ -158,6 +169,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    activePlayers--;
     console.log('User disconnected:', socket.id);
     socket.rooms.forEach(room => {
       if (room !== socket.id) {
@@ -167,6 +179,14 @@ io.on('connection', (socket) => {
         }
       }
     });
+    // Check if the disconnecting player was in a waiting room
+    // This logic might need to be adjusted based on your room management
+    socket.rooms.forEach(room => {
+      if (rooms.has(room) && rooms.get(room).players.length === 1) {
+        waitingRooms--;
+      }
+    });
+    io.emit('statsUpdate', { activePlayers, waitingRooms });
   });
 });
 

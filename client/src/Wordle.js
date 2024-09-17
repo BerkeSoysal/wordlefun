@@ -34,6 +34,7 @@ const Wordle = () => {
   const [letterFeedbacks, setLetterFeedbacks] = useState(
     Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
   );
+  const [stats, setStats] = useState({ activePlayers: 0, waitingRooms: 0 });
 
   const keyupListenerRef = useRef(null);
 
@@ -134,7 +135,9 @@ const Wordle = () => {
       setCurrentGuess('');
     });
 
-    
+    socket.on('statsUpdate', (newStats) => {
+      setStats(newStats);
+    });
 
     return () => {
       socket.off('connect');
@@ -149,6 +152,7 @@ const Wordle = () => {
       socket.off('invalidWord');
       socket.off('invalidGuess');
       socket.off('joinError');
+      socket.off('statsUpdate');
     };
   }, [playerId, isWordSelector]);
 
@@ -272,19 +276,22 @@ const Wordle = () => {
       <div className="menu">
         <h1>Wordle Multiplayer</h1>
         <div className="menu-container">
-          <div>
+          <div className="menu-section">
             <h2>Create a Room</h2>
-            <label>
-              <input 
-                type="checkbox" 
-                checked={isPrivate} 
-                onChange={(e) => setIsPrivate(e.target.checked)} 
-              />
-              Private Room
-            </label>
-            <button onClick={handleCreateRoom}>Create Room</button>
+            <div className="create-room-container">
+              <div className="checkbox-container">
+                <input 
+                  type="checkbox" 
+                  id="privateRoom"
+                  checked={isPrivate} 
+                  onChange={(e) => setIsPrivate(e.target.checked)} 
+                />
+                <label htmlFor="privateRoom">Private Room</label>
+              </div>
+              <button onClick={handleCreateRoom}>Create Room</button>
+            </div>
           </div>
-          <div>
+          <div className="menu-section">
             <h2>Join a Room</h2>
             <input 
               type="text" 
@@ -296,7 +303,10 @@ const Wordle = () => {
             <button onClick={handleJoinRoom}>Join Room</button>
           </div>
           {error && <p className="error">{error}</p>}
+          <p>Active Players: {stats.activePlayers}</p>
+          <p>Rooms Waiting: {stats.waitingRooms}</p>
         </div>
+          
       </div>
     );
   }
