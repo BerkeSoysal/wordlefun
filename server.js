@@ -4,19 +4,20 @@ const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
 const fs = require('fs');
+const AI_ID = 'AI_PLAYER';
 
 const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'client/build')));
 
 const server = http.createServer(app);
-/*const io = new Server(server, {
+const io = new Server(server, {
   cors: {
     origin: "*", // For development, you can use "*". For production, specify your client's URL
     methods: ["GET", "POST"]
   }
-});*/
-const io = new Server(server);
+});
+//const io = new Server(server);
 
 const rooms = new Map();
 let words = [];
@@ -30,6 +31,11 @@ fs.readFile('wordlist.txt', 'utf8', (err, data) => {
   }
   words = data.trim().split('\n');
 });
+
+// Add this function to select a random word
+function selectRandomWord() {
+  return words[Math.floor(Math.random() * words.length)].toUpperCase();
+}
 
 function generateRoomCode() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -45,6 +51,32 @@ io.on('connection', (socket) => {
   io.emit('statsUpdate', { activePlayers, waitingRooms });
 
   console.log('A user connected:', socket.id);
+
+  socket.on('createSinglePlayerRoom', ()=> {
+    const roomCode = generateRoomCode();
+    const isAIWordSelector = false;
+    const players = isAIWordSelector ? [AI_ID, socket.id] : [socket.id, AI_ID];
+    rooms.set(roomCode, {
+      players,
+      isPrivate: true,
+      wordSelector: players[0],
+      isSinglePlayer: true
+    });
+    socket.join(roomCode);
+    socket.emit('roomCreated', { roomCode, isPrivate: true, isSinglePlayer: true });
+    if (isAIWordSelector) {
+      const word = selectRandomWord();
+      rooms.get(roomCode).solution = word;
+      io.to(roomCode).emit('wordSelected', word);
+      io.to(roomCode).emit('turnChange', socket.id);
+    } else {
+      io.to(roomCode).emit('gameStart', { 
+        roomCode,
+        players,
+        wordSelector: socket.id
+      });
+    }
+  });
 
   socket.on('createRoom', ({ isPrivate }) => {
     console.log("room creation");
@@ -103,51 +135,79 @@ io.on('connection', (socket) => {
     }
     room.solution = word.toLowerCase();
     const players = Array.from(room.players);
-    const otherPlayer = players.find(id => id !== socket.id);
     io.to(roomCode).emit('wordSelected', word);
-    io.to(roomCode).emit('turnChange', otherPlayer);
+    if (room.isSinglePlayer) {
+      io.to(roomCode).emit('turnChange', AI_ID);
+      makeGuess(selectRandomWord());
+    } else {
+      const otherPlayer = players.find(id => id !== socket.id);
+      io.to(roomCode).emit('turnChange', otherPlayer);
+    }
   });
 
-  socket.on('makeGuess', (guess) => {
-    const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
-    const room = io.sockets.adapter.rooms.get(roomCode);
+  socket.on('makeGuess', (guess) => makeGuess(guess));
+
+  function makeGuess(guess) {
+      const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
+      const room = rooms.get(roomCode);
+      //rooms.set(roomCode, { players: [socket.id], isPrivate, wordSelector: socket.id });
+      
+      if (!room || room.wordSelector === socket.id && !room.isSinglePlayer) {
+        return;
+      }
+        if (!words.includes(guess.toLowerCase())) {
+        io.to(roomCode).emit('invalidGuess', 'The guessed word is not in the word list');
+        return;
+      }
     
-    if (!room || room.wordSelector === socket.id) return;
-    if (!words.includes(guess.toLowerCase())) {
-      io.to(roomCode).emit('invalidGuess', 'The guessed word is not in the word list');
-      return;
-    }
-  
-      // Initialize guessCount if it doesn't exist
+
+        // Initialize guessCount if it doesn't exist
       room.guessCount = room.guessCount || 0;
       // Increment guess count
       room.guessCount++;
 
-    const players = Array.from(room.values());
-    const otherPlayer = players.find(id => id !== socket.id);
-    
-    io.to(roomCode).emit('opponentGuess', guess);
-    
-    if (guess.toLowerCase() === rooms.get(roomCode).solution.toLowerCase()) {
-      io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
-    } else if (room.guessCount >= 6) {
-      io.in(roomCode).emit('gameOver', { winner: room.wordSelector, word: room.solution });
+
+      io.to(roomCode).emit('opponentGuess', guess);
+      
+      if (guess.toLowerCase() === rooms.get(roomCode).solution.toLowerCase()) {
+        console.log('found');
+        console.log(room.guessCount);
+        io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
+      } else if (room.guessCount >= 6) {
+        console.log(room.guessCount);
+        io.in(roomCode).emit('gameOver', { winner: room.wordSelector, word: room.solution });
+      }
+  
+      io.to(roomCode).emit('guessUpdate', { 
+        guessCount: room.guessCount, 
+        remainingGuesses: 6 - room.guessCount 
+      });
     }
+  
 
-    io.to(roomCode).emit('guessUpdate', { 
-      guessCount: room.guessCount, 
-      remainingGuesses: 6 - room.guessCount 
-    });
+  socket.on('makeAIGuess', () => {
+    makeGuess(selectRandomWord());
+  })
 
-  });
-
-  socket.on('playAgain', () => {
+  socket.on('playAgain', (isSinglePlayer) => {
     const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
     const room = rooms.get(roomCode);
     if (!room) return;
 
     room.playAgainVotes = room.playAgainVotes || new Set();
     room.playAgainVotes.add(socket.id);
+
+    if(isSinglePlayer) {
+      room.solution = null;
+      room.guessCount = 0;
+      room.playAgainVotes.clear();
+
+      io.to(roomCode).emit('gameStart', {
+        roomCode,
+        players: room.players,
+        wordSelector: room.wordSelector
+      });
+    }
 
     if (room.playAgainVotes.size === room.players.length) {
       // Reset the game

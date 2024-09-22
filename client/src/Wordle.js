@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import './Wordle.css';
 
-const socket = io();
-//const socket = io("http://localhost:3001")
+//const socket = io();
+const socket = io("http://localhost:3001")
+const AI_ID = 'AI_PLAYER';
+
 const Wordle = () => {
-//the delete symbol --> ⌫
 
   const keyboard = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -14,7 +15,7 @@ const Wordle = () => {
   ];
 
 
-
+  const [isSinglePlayer, setIsSinglePlayer] = useState(false);
   const [gameState, setGameState] = useState('menu'); // 'menu', 'waiting', 'playing'
   const [roomCode, setRoomCode] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
@@ -34,6 +35,8 @@ const Wordle = () => {
   const [letterFeedbacks, setLetterFeedbacks] = useState(
     Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(letter => [letter, '']))
   );
+  const aiGuessTimerRef = useRef(null);
+
   const [stats, setStats] = useState({ activePlayers: 0, waitingRooms: 0 });
 
   const keyupListenerRef = useRef(null);
@@ -41,12 +44,12 @@ const Wordle = () => {
   useEffect(() => {
     socket.on('connect', () => {
       setPlayerId(socket.id);
-      console.log("Connected");
     });
 
-    socket.on('roomCreated', ({ roomCode, isPrivate }) => {
+    socket.on('roomCreated', ({ roomCode, isPrivate, isSinglePlayer }) => {
       setRoomCode(roomCode);
       setGameState('waiting');
+      setIsSinglePlayer(isSinglePlayer);
     });
 
     socket.on('gameStart', ({ roomCode, players, wordSelector }) => {
@@ -153,8 +156,34 @@ const Wordle = () => {
       socket.off('invalidGuess');
       socket.off('joinError');
       socket.off('statsUpdate');
+
+      if (aiGuessTimerRef.current) {
+        clearTimeout(aiGuessTimerRef.current);
+      }
     };
   }, [playerId, isWordSelector]);
+
+  const handleCreateSinglePlayerRoom = () => {
+    socket.emit('createSinglePlayerRoom');
+  };
+
+  const makeAIGuess = useCallback(() => {
+    if (currentTurn === AI_ID && !gameOver) {
+      socket.emit('makeAIGuess');
+    }
+  }, [currentTurn, gameOver]);
+
+  useEffect(() => {
+    if (isSinglePlayer && currentTurn === AI_ID && !gameOver) {
+      aiGuessTimerRef.current = setTimeout(makeAIGuess, 500);
+    }
+    return () => {
+      if (aiGuessTimerRef.current) {
+        clearTimeout(aiGuessTimerRef.current);
+      }
+    };
+  }, [isSinglePlayer,guesses,  currentTurn, gameOver, makeAIGuess]);
+
 
   const handleCreateRoom = () => {
     socket.emit('createRoom', { isPrivate });
@@ -241,8 +270,8 @@ const Wordle = () => {
     return () => window.removeEventListener('keyup', listener);
   }, []);
 
-  const handlePlayAgain = () => {
-    socket.emit('playAgain');
+  const handlePlayAgain = (isSinglePlayer) => {
+    socket.emit('playAgain', isSinglePlayer);
     setShowPlayAgain(false);
     setOpponentWantsPlayAgain(false);
   };
@@ -290,6 +319,7 @@ const Wordle = () => {
               </div>
               <button onClick={handleCreateRoom}>Create Room</button>
             </div>
+            <button onClick={handleCreateSinglePlayerRoom}>Create Single Player Room</button>
           </div>
           <div className="menu-section">
             <h2>Join a Room</h2>
@@ -368,7 +398,7 @@ const Wordle = () => {
       {showPlayAgain && (
         <div className="play-again-prompt">
           <p>Do you want to play again?</p>
-          <button onClick={handlePlayAgain}>Play Again</button>
+          <button onClick={() => handlePlayAgain(isSinglePlayer)}>Play Again</button>
           {opponentWantsPlayAgain && <p>Your opponent wants to play again!</p>}
         </div>
       )}
@@ -393,8 +423,8 @@ const Wordle = () => {
 };
 
 
+
 function getKeyClass(key, letterFeedbacks) {
-  //console.log(letterFeedbacks);
   return letterFeedbacks[key] || '';
 }
 function getWordleFeedback(guess, solution) {
@@ -431,7 +461,6 @@ function getWordleFeedback(guess, solution) {
             }
         }
     }
-    console.log(result);
     return result;
 }
 
