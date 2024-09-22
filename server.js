@@ -231,7 +231,7 @@ io.on('connection', (socket) => {
 
   socket.on('makeAIGuess', (feedback) => {
       if(feedback == null) {
-        makeGuess(selectRandomWord());
+        makeGuess(selectRandomWord(), words.length);
         return;
       }
       const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
