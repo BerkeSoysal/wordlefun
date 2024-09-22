@@ -37,6 +37,45 @@ function selectRandomWord() {
   return words[Math.floor(Math.random() * words.length)].toUpperCase();
 }
 
+function selectRandomWordOnFiltered(filteredWords) {
+  return filteredWords[Math.floor(Math.random() * filteredWords.length)].toUpperCase();
+}
+
+
+function filterWordsExcludingChars(absentLetters) {
+  const filteredWords = words.filter(word => {
+    return !absentLetters.some(letter => word.includes(letter));
+  });
+  if (filteredWords.length === 0) {
+    throw "word not found"; // Return null if no words satisfy the condition
+  }
+  return filteredWords;
+}
+
+function filterWordsOnGreen(words, greenLetters) {
+
+  return words.filter(word => {
+    for (const { letter, index } of greenLetters) {
+      if (word[index] !== letter) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function filterWordsOnYellow(words, yellowLetters) {
+
+  return words.filter(word => {
+    for (const { letter, index } of yellowLetters) {
+      if (!word.includes(letter) || word[index] === letter) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 function generateRoomCode() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let result = '';
@@ -60,7 +99,9 @@ io.on('connection', (socket) => {
       players,
       isPrivate: true,
       wordSelector: players[0],
-      isSinglePlayer: true
+      isSinglePlayer: true,
+      feedbacks: [],
+      guesses: [],
     });
     socket.join(roomCode);
     socket.emit('roomCreated', { roomCode, isPrivate: true, isSinglePlayer: true });
@@ -79,7 +120,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('createRoom', ({ isPrivate }) => {
-    console.log("room creation");
     const roomCode = generateRoomCode();
     rooms.set(roomCode, { players: [socket.id], isPrivate, wordSelector: socket.id });
     socket.join(roomCode);
@@ -138,7 +178,7 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('wordSelected', word);
     if (room.isSinglePlayer) {
       io.to(roomCode).emit('turnChange', AI_ID);
-      makeGuess(selectRandomWord());
+      //makeGuess(selectRandomWord());
     } else {
       const otherPlayer = players.find(id => id !== socket.id);
       io.to(roomCode).emit('turnChange', otherPlayer);
@@ -159,6 +199,12 @@ io.on('connection', (socket) => {
         io.to(roomCode).emit('invalidGuess', 'The guessed word is not in the word list');
         return;
       }
+
+        // If it's a single player game, add the guess to the room's guesses array
+        if (room.isSinglePlayer) {
+          room.guesses = room.guesses || [];
+          room.guesses.push(guess.toLowerCase());
+        }
     
 
         // Initialize guessCount if it doesn't exist
@@ -170,11 +216,8 @@ io.on('connection', (socket) => {
       io.to(roomCode).emit('opponentGuess', guess);
       
       if (guess.toLowerCase() === rooms.get(roomCode).solution.toLowerCase()) {
-        console.log('found');
-        console.log(room.guessCount);
         io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
       } else if (room.guessCount >= 6) {
-        console.log(room.guessCount);
         io.in(roomCode).emit('gameOver', { winner: room.wordSelector, word: room.solution });
       }
   
@@ -185,9 +228,91 @@ io.on('connection', (socket) => {
     }
   
 
-  socket.on('makeAIGuess', () => {
-    makeGuess(selectRandomWord());
-  })
+  socket.on('makeAIGuess', (feedback) => {
+      if(feedback == null) {
+        makeGuess(selectRandomWord());
+        return;
+      }
+      const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
+      const room = rooms.get(roomCode);
+      if (!room) return;
+      room.feedbacks = [...room.feedbacks, feedback];
+      // Get the feedback array from the room
+      const feedbacks = room.feedbacks || [];
+      const guesses = room.guesses || [];
+      console.log(feedbacks);
+      console.log(guesses);
+      
+      // Pair up each guess with its corresponding feedback
+      const guessFeedbackPairs = guesses.map((guess, index) => ({
+        guess,
+        feedback: feedbacks[index] || []
+      }));
+
+      // Initialize the absentLetters array if it doesn't exist
+      let absentLetters = [];
+      let foundLetters = [];
+      let greenLetters = [];
+      let yellowLetters = [];
+
+      // Fill absentLetters array from inside the loop
+      guessFeedbackPairs.forEach(({ guess, feedback }) => {
+        for (let i = 0; i < guess.length; i++) {
+          if (feedback[i] === 'green' || feedback[i] == 'yellow') {
+            const letter = guess[i];
+            if (!foundLetters.includes(letter)) {
+              foundLetters.push(letter);
+            }
+          }
+        }
+      });
+
+      guessFeedbackPairs.forEach(({ guess, feedback }) => {
+        for (let i = 0; i < guess.length; i++) {
+          if (feedback[i] === 'green') {
+            const letter = guess[i];
+            if (!greenLetters.includes({letter: letter, index: i})) {
+              greenLetters.push({letter: letter, index: i});
+            }
+          }
+        }
+      });
+
+      guessFeedbackPairs.forEach(({ guess, feedback }) => {
+        for (let i = 0; i < guess.length; i++) {
+          if (feedback[i] === 'yellow') {
+            const letter = guess[i];
+            if (!yellowLetters.includes({letter:letter, index: i})) {
+              yellowLetters.push({letter: letter, index: i});
+            }
+          }
+        }
+      });
+ 
+      guessFeedbackPairs.forEach(({ guess, feedback }) => {
+        for (let i = 0; i < guess.length; i++) {
+          if (feedback[i] === '') {
+            const letter = guess[i];
+            if (!absentLetters.includes(letter) && !foundLetters.includes(letter)) {
+              absentLetters.push(letter);
+              
+            }
+          }
+        }
+      });
+
+      // TODO: Use the updated knowledge to make a more informed guess
+      
+      let filteredWords = filterWordsExcludingChars(absentLetters);
+      let greenWords = filterWordsOnGreen(filteredWords, greenLetters)
+      let yellowWords = filterWordsOnYellow(greenWords, yellowLetters);
+      // Use the feedback to make a more informed guess
+      // For now, we'll just make a random guess as before
+      makeGuess(selectRandomWordOnFiltered(yellowWords));
+
+      // Store the feedback for future use
+    }
+  );
 
   socket.on('playAgain', (isSinglePlayer) => {
     const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
@@ -201,11 +326,13 @@ io.on('connection', (socket) => {
       room.solution = null;
       room.guessCount = 0;
       room.playAgainVotes.clear();
-
+      room.feedbacks = [];
+      room.guesses = [];
       io.to(roomCode).emit('gameStart', {
         roomCode,
         players: room.players,
-        wordSelector: room.wordSelector
+        wordSelector: room.wordSelector,
+  
       });
     }
 

@@ -169,9 +169,14 @@ const Wordle = () => {
 
   const makeAIGuess = useCallback(() => {
     if (currentTurn === AI_ID && !gameOver) {
-      socket.emit('makeAIGuess');
+      let lastNonEmptyGuessIndex = guesses.findLastIndex(guess => guess !== '');
+      let feedback = null;
+      if(lastNonEmptyGuessIndex != -1) { 
+        feedback = getWordleFeedback(guesses[lastNonEmptyGuessIndex], solution);
+      }
+      socket.emit('makeAIGuess', feedback);
     }
-  }, [currentTurn, gameOver]);
+  }, [currentTurn, gameOver, guesses, solution, socket]);
 
   useEffect(() => {
     if (isSinglePlayer && currentTurn === AI_ID && !gameOver) {
@@ -430,7 +435,9 @@ function getKeyClass(key, letterFeedbacks) {
 function getWordleFeedback(guess, solution) {
     // Initialize the result array with 'G' (incorrect letter)
     let result = new Array(5).fill('');
-    
+    if(guess == null) {
+      return result;
+    }
     // Create a copy of the solution and guess to manage letter position tracking
     let solutionCopy = solution.toLowerCase().split('');
     let guessCopy = guess.toLowerCase().split('');
