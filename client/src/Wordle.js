@@ -111,7 +111,7 @@ const Wordle = () => {
     });
 
     socket.on('guessUpdate', ({ guessCount, remainingGuesses }) => {
-      setMessage(`Guess ${guessCount}/6. You have ${remainingGuesses} guesses remaining.`);
+      //setMessage(`Guess ${guessCount}/6. You have ${remainingGuesses} guesses remaining.`);
     });
 
     socket.on('gameOver', ({ winner, word }) => {
