@@ -180,7 +180,7 @@ const Wordle = () => {
 
   useEffect(() => {
     if (isSinglePlayer && currentTurn === AI_ID && !gameOver) {
-      aiGuessTimerRef.current = setTimeout(makeAIGuess, 500);
+      aiGuessTimerRef.current = setTimeout(makeAIGuess, 2000);
     }
     return () => {
       if (aiGuessTimerRef.current) {
