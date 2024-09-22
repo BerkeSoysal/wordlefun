@@ -188,7 +188,7 @@ io.on('connection', (socket) => {
 
   socket.on('makeGuess', (guess) => makeGuess(guess));
 
-  function makeGuess(guess) {
+  function makeGuess(guess, wordCount) {
       const roomCode = Array.from(socket.rooms).find(room => room !== socket.id);
       const room = rooms.get(roomCode);
       //rooms.set(roomCode, { players: [socket.id], isPrivate, wordSelector: socket.id });
@@ -214,7 +214,7 @@ io.on('connection', (socket) => {
       room.guessCount++;
 
 
-      io.to(roomCode).emit('opponentGuess', guess);
+      io.to(roomCode).emit('opponentGuess', guess, wordCount);
       
       if (guess.toLowerCase() === rooms.get(roomCode).solution.toLowerCase()) {
         io.to(roomCode).emit('gameOver', { winner: socket.id, word: room.solution });
@@ -309,7 +309,7 @@ io.on('connection', (socket) => {
       let yellowWords = filterWordsOnYellow(greenWords, yellowLetters);
       // Use the feedback to make a more informed guess
       // For now, we'll just make a random guess as before
-      makeGuess(selectRandomWordOnFiltered(yellowWords));
+      makeGuess(selectRandomWordOnFiltered(yellowWords), yellowWords.length);
 
       // Store the feedback for future use
     }

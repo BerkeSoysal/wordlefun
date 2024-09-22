@@ -96,13 +96,17 @@ const Wordle = () => {
       }
     });
 
-    socket.on('opponentGuess', (guess) => {
+    socket.on('opponentGuess', (guess,wordCount) => {
       setGuesses(prevGuesses => {
         const newGuesses = [...prevGuesses];
         const emptyIndex = newGuesses.findIndex(val => val === "");
         setCurrentGuess('');
         newGuesses[emptyIndex] = guess;
+        if(isSinglePlayer) {
+         setMessage(`Hmmmph, there is ${wordCount} possiblities`) 
+        }
         return newGuesses;
+        
       });
     });
 
