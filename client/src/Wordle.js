@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import './Wordle.css';
 
-//const socket = io();
-const socket = io("http://localhost:3001")
+const socket = io();
+//const socket = io("http://localhost:3001")
 const AI_ID = 'AI_PLAYER';
 
 const Wordle = () => {
